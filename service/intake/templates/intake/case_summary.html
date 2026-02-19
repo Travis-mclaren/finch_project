@@ -1,0 +1,264 @@
+{% extends "intake/base.html" %}
+
+{% block title %}Case {{ case_id }} — Summary{% endblock %}
+
+{% block content %}
+{% with viability=analysis.case_viability liability=analysis.liability_summary %}
+
+{# ------------------------------------------------------------------ #}
+{# Header bar                                                          #}
+{# ------------------------------------------------------------------ #}
+<header class="bg-white border-b border-gray-200 shadow-sm print:shadow-none print:border-gray-300">
+  <div class="max-w-5xl mx-auto px-6 py-5 flex flex-wrap items-center gap-4">
+
+    <div class="flex-1 min-w-0">
+      <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-0.5">Case ID</p>
+      <p class="text-sm font-mono text-gray-700 truncate">{{ case_id }}</p>
+    </div>
+
+    <div class="flex-1 min-w-0">
+      <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-0.5">Client</p>
+      <p class="text-lg font-bold text-gray-900">{{ client_name|default:"Unknown" }}</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      {# Viability score badge — color by band #}
+      {% with score=viability.viability_score|default:0 %}
+      <div class="flex flex-col items-center">
+        <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">Viability</p>
+        {% if score >= 75 %}
+          <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500 text-white text-xl font-bold shadow print:border-2 print:border-green-500 print:bg-green-100 print:text-green-800">{{ score }}</span>
+        {% elif score >= 50 %}
+          <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-yellow-400 text-white text-xl font-bold shadow print:border-2 print:border-yellow-400 print:bg-yellow-50 print:text-yellow-800">{{ score }}</span>
+        {% elif score >= 25 %}
+          <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-orange-500 text-white text-xl font-bold shadow print:border-2 print:border-orange-500 print:bg-orange-50 print:text-orange-800">{{ score }}</span>
+        {% else %}
+          <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-500 text-white text-xl font-bold shadow print:border-2 print:border-red-500 print:bg-red-50 print:text-red-800">{{ score }}</span>
+        {% endif %}
+      </div>
+      {% endwith %}
+
+      {# Recommendation label #}
+      <div class="flex flex-col">
+        <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">Recommendation</p>
+        <span class="inline-block px-3 py-1 rounded-full text-sm font-semibold
+          {% if viability.recommendation == 'strong_yes' %}bg-green-100 text-green-800
+          {% elif viability.recommendation == 'yes' %}bg-green-50 text-green-700
+          {% elif viability.recommendation == 'neutral' %}bg-gray-100 text-gray-700
+          {% elif viability.recommendation == 'no' %}bg-red-50 text-red-700
+          {% elif viability.recommendation == 'strong_no' %}bg-red-100 text-red-800
+          {% else %}bg-gray-100 text-gray-700{% endif %}">
+          {% if viability.recommendation == 'strong_yes' %}Strong Yes
+          {% elif viability.recommendation == 'yes' %}Yes
+          {% elif viability.recommendation == 'neutral' %}Neutral
+          {% elif viability.recommendation == 'no' %}No
+          {% elif viability.recommendation == 'strong_no' %}Strong No
+          {% else %}{{ viability.recommendation|default:"—" }}{% endif %}
+        </span>
+      </div>
+    </div>
+
+  </div>
+</header>
+
+{# ------------------------------------------------------------------ #}
+{# Page body                                                            #}
+{# ------------------------------------------------------------------ #}
+<main class="max-w-5xl mx-auto px-6 py-8 space-y-10 print:py-4 print:space-y-8">
+
+  {# ---- Section 1: Incident Summary --------------------------------- #}
+  <section>
+    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 print:text-base">
+      Incident Summary
+    </h2>
+    <p class="text-gray-700 leading-relaxed">
+      {{ analysis.incident_summary|default:"No incident summary available." }}
+    </p>
+  </section>
+
+  {# ---- Section 2: Liability Summary -------------------------------- #}
+  <section>
+    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 print:text-base">
+      Liability Summary
+    </h2>
+
+    {% if liability %}
+    <h3 class="text-base font-semibold text-gray-900 mb-2">
+      {{ liability.liable_party|default:"Unknown party" }}
+    </h3>
+
+    <p class="text-gray-700 leading-relaxed mb-4">
+      {{ liability.basis|default:"No basis provided." }}
+    </p>
+
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-sm text-gray-500 font-medium">Confidence:</span>
+      {% if liability.confidence == 'high' %}
+        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">High</span>
+      {% elif liability.confidence == 'medium' %}
+        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Medium</span>
+      {% else %}
+        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">Low</span>
+      {% endif %}
+    </div>
+
+    {% if liability.caveats %}
+    <aside class="border-l-4 border-gray-300 pl-4 py-2 bg-gray-50 text-sm text-gray-600 italic rounded-r print:bg-white print:border-gray-400">
+      <span class="font-semibold not-italic text-gray-500 uppercase text-xs tracking-wide block mb-1">Caveats</span>
+      {{ liability.caveats }}
+    </aside>
+    {% endif %}
+
+    {% else %}
+    <p class="text-gray-500 italic">No liability data available.</p>
+    {% endif %}
+  </section>
+
+  {# ---- Section 3: Damages Summary ---------------------------------- #}
+  <section>
+    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 print:text-base">
+      Damages Summary
+    </h2>
+
+    {% if analysis.damages_summary %}
+    <div class="overflow-x-auto rounded-lg border border-gray-200 print:border-gray-300">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide print:bg-gray-100">
+          <tr>
+            <th class="px-4 py-3">Type</th>
+            <th class="px-4 py-3">Description</th>
+            <th class="px-4 py-3">Amount</th>
+            <th class="px-4 py-3">Provider</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 print:divide-gray-200">
+          {% for item in analysis.damages_summary %}
+          <tr class="bg-white hover:bg-gray-50 print:hover:bg-white">
+            <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
+              {% if item.damage_type == 'medical' %}Medical Expenses
+              {% elif item.damage_type == 'lost_wages' %}Lost Wages
+              {% elif item.damage_type == 'pain' or item.damage_type == 'pain_suffering' %}Pain &amp; Suffering
+              {% elif item.damage_type == 'property' %}Property Damage
+              {% elif item.damage_type == 'future_medical' %}Future Medical
+              {% elif item.damage_type == 'future_lost_wages' %}Future Lost Wages
+              {% elif item.damage_type == 'other' %}Other
+              {% else %}{{ item.damage_type|capfirst|default:"Other" }}{% endif %}
+            </td>
+            <td class="px-4 py-3 text-gray-700">{{ item.description|default:"—" }}</td>
+            <td class="px-4 py-3 text-gray-800 font-mono whitespace-nowrap">
+              {% if item.amount is not None and item.amount != "" %}
+                ${{ item.amount }}
+              {% else %}
+                <span class="text-gray-400 italic font-sans">Unknown</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-gray-700">
+              {% if item.provider %}{{ item.provider }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500 italic">No damages recorded.</p>
+    {% endif %}
+  </section>
+
+  {# ---- Section 4: Insurance Coverage ------------------------------- #}
+  <section>
+    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 print:text-base">
+      Insurance Coverage
+    </h2>
+
+    {% if analysis.insurance_summary %}
+    <div class="overflow-x-auto rounded-lg border border-gray-200 print:border-gray-300">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide print:bg-gray-100">
+          <tr>
+            <th class="px-4 py-3">Provider</th>
+            <th class="px-4 py-3">Policy Type</th>
+            <th class="px-4 py-3">Related To</th>
+            <th class="px-4 py-3">Claim #</th>
+            <th class="px-4 py-3">Notes</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 print:divide-gray-200">
+          {% for item in analysis.insurance_summary %}
+          <tr class="bg-white hover:bg-gray-50 print:hover:bg-white">
+            <td class="px-4 py-3 font-medium text-gray-800">{{ item.provider_name|default:"—" }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ item.policy_type|capfirst|default:"—" }}</td>
+            <td class="px-4 py-3 text-gray-700">
+              {% if item.related_to == 'client' %}Client
+              {% elif item.related_to == 'other_party' %}Other Party
+              {% else %}Unknown{% endif %}
+            </td>
+            <td class="px-4 py-3 font-mono text-gray-700">
+              {{ item.claim_number|default:"N/A" }}
+            </td>
+            <td class="px-4 py-3 text-gray-600 text-xs">{{ item.notes|default:"" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500 italic">No insurance coverage on record.</p>
+    {% endif %}
+  </section>
+
+  {# ---- Section 5: Case Viability ----------------------------------- #}
+  <section>
+    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 print:text-base">
+      Case Viability
+    </h2>
+
+    {% if viability.reasoning %}
+    <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Reasoning</h3>
+    <ul class="space-y-1 mb-6 list-none">
+      {% for point in viability.reasoning %}
+      <li class="flex items-start gap-2 text-gray-700 text-sm">
+        <span class="mt-0.5 shrink-0 text-gray-400">•</span>
+        <span>{{ point }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if viability.missing_info %}
+    <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Information Needed</h3>
+    <ul class="space-y-1 list-none">
+      {% for item in viability.missing_info %}
+      <li class="flex items-start gap-2 text-gray-700 text-sm">
+        <span class="mt-0.5 shrink-0 text-gray-400">○</span>
+        <span>{{ item }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  {# ---- Section 6: Red Flags (conditional) -------------------------- #}
+  {% if viability.red_flags %}
+  <section>
+    <h2 class="text-lg font-bold text-red-700 border-b border-red-200 pb-2 mb-4 print:text-base flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+      Red Flags
+    </h2>
+    <ul class="space-y-2 list-none">
+      {% for flag in viability.red_flags %}
+      <li class="flex items-start gap-2 text-red-700 text-sm">
+        <span class="mt-0.5 shrink-0 font-bold">!</span>
+        <span>{{ flag }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+</main>
+
+{% endwith %}
+{% endblock %}
